@@ -23,7 +23,6 @@ services:
       POSTGRES_DB: origen
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-Postgres_Admin_2026_Segura!}"
-    
       POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     volumes:
       - datos_origen:/var/lib/postgresql/data
@@ -51,17 +50,13 @@ services:
       DB_HOST: db
       DB_PORT: 5432
       DB_NAME: origen
-      
       DB_USER: origen_app
-      DB_PASSWORD: "${DB_PASSWORD:-origen_app_2024}
+      DB_PASSWORD: "${DB_PASSWORD:-origen_app_2024}"
       SESSION_SECRET: "${SESSION_SECRET:-cambia_este_secreto_largo_y_aleatorio_en_prod_987654}"
       UPLOADS_DIR: /app/uploads
-      # Puerto publicado en el host, sólo para los mensajes de arranque.
-      APP_PORT: "${APP_PORT:-8090}"
+      APP_PORT: "${APP_PORT:-8080}"
     ports:
-      # Puerto en el host. Si en tu máquina el 8080 está ocupado, exportá
-      # APP_PORT=8090 antes de `docker compose up` (o ponelo en un .env).
-      - "${APP_PORT:-8090}:3000"
+      - "${APP_PORT:-8080}:3000"
     volumes:
       - ./src:/app/src
       - ./tests:/app/tests
