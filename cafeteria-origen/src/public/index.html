@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Origen — Cafetería de especialidad</title>
+  <meta name="description" content="Cafetería Origen: café de especialidad de Colombia, Etiopía y Brasil, tostado y preparado en el origen.">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9749;</text></svg>">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <span class="brand-mark">O</span>
+      <span class="brand-text">
+        <strong>Origen</strong>
+        <small>cafetería de especialidad</small>
+      </span>
+    </a>
+    <nav class="nav">
+      <a href="#cafe">Café</a>
+      <a href="#origenes">Orígenes</a>
+      <a href="#resenas">Reseñas</a>
+      <a href="/admin.html" class="nav-admin">Panel</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- ===================== HERO ===================== -->
+  <section class="hero">
+    <div class="wrap hero-inner">
+      <div class="hero-text">
+        <p class="eyebrow">Fundada por Valentina · Café de especialidad</p>
+        <h1>Cada taza empieza<br>en un <em>origen</em>.</h1>
+        <p class="lead">
+          Seleccionamos granos de Colombia, Etiopía y Brasil, los tostamos con
+          cuidado y los preparamos con agua de altura. Expreso, filtrado y
+          algo de pastelería para acompañar.
+        </p>
+        <div class="hero-actions">
+          <a href="#cafe" class="btn btn-primary">Ver el menú</a>
+          <a href="#origenes" class="btn btn-ghost">Nuestros orígenes</a>
+        </div>
+        <dl class="hero-stats">
+          <div><dt>3</dt><dd>orígenes</dd></div>
+          <div><dt>18</dt><dd>variedades</dd></div>
+          <div><dt>4</dt><dd>formas de preparar</dd></div>
+        </dl>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="cup">
+          <div class="cup-body">
+            <span class="cup-heart"></span>
+          </div>
+          <div class="cup-handle"></div>
+          <div class="cup-saucer"></div>
+        </div>
+        <div class="hero-badge">
+          <strong>Tostado semanal</strong>
+          <span>Micro-lotes de temporada</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== ORÍGENES ===================== -->
+  <section id="origenes" class="section">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="eyebrow">Territorio</p>
+        <h2>Tres orígenes, tres maneras de tomar el café</h2>
+        <p class="section-lead">
+          Cada variedad se tueste por separado para cuidar su acidez, su cuerpo
+          y sus notas.
+        </p>
+      </header>
+
+      <div class="origin-grid">
+        <article class="origin-card origin-colombia">
+          <span class="origin-flag">🇨🇴</span>
+          <h3>Colombia</h3>
+          <p class="origin-notes">Acidez media · cuerpo equilibrado · notas cítricas y florales</p>
+          <p class="origin-detail">
+            Un café amable para todos los días: brillante pero redondo, con un
+            final limpio que invita a volver a la taza.
+          </p>
+        </article>
+        <article class="origin-card origin-etiopia">
+          <span class="origin-flag">🇪🇹</span>
+          <h3>Etiopía</h3>
+          <p class="origin-notes">Acidez muy viva · cuerpo ligero · notas frutales</p>
+          <p class="origin-detail">
+            Aromático y expresivo. Ideal en filtro, con notas afrutadas como
+            fresa o mango y un cuerpo casi transparente.
+          </p>
+        </article>
+        <article class="origin-card origin-brasil">
+          <span class="origin-flag">🇧🇷</span>
+          <h3>Brasil</h3>
+          <p class="origin-notes">Acidez baja · cuerpo denso · notas de avellana</p>
+          <p class="origin-detail">
+            Cremoso y tolerante. Es el clásico espresso de la casa, con un
+            final dulce que dura.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== MENÚ ===================== -->
+  <section id="cafe" class="section section-alt">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="eyebrow">Carta</p>
+        <h2>El menú</h2>
+      </header>
+
+      <div class="filters">
+        <div class="chips" role="group" aria-label="Filtrar por tipo">
+          <button class="chip is-active" data-tipo="">Todo</button>
+          <button class="chip" data-tipo="espresso">Espresso</button>
+          <button class="chip" data-tipo="filtrado">Filtrado</button>
+          <button class="chip" data-tipo="pasteleria">Pastelería</button>
+        </div>
+        <div class="filter-fields">
+          <label class="field">
+            <span>Origen</span>
+            <select id="filtro-variedad">
+              <option value="">Todos los orígenes</option>
+              <option value="Colombia">Colombia</option>
+              <option value="Etiopía">Etiopía</option>
+              <option value="Brasil">Brasil</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Buscar</span>
+            <input type="search" id="filtro-busqueda" placeholder="espresso, muffin, avellana…">
+          </label>
+        </div>
+      </div>
+
+      <p class="result-summary" id="resultado-busqueda"></p>
+
+      <div class="product-grid" id="productos-grid">
+        <p class="empty">Cargando el catálogo…</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== PEDIDO ===================== -->
+  <section id="pedido" class="section">
+    <div class="wrap order-layout">
+
+      <div class="order-col">
+        <header class="section-head section-head-left">
+          <p class="eyebrow">Tu pedido</p>
+          <h2>Armá tu pedido</h2>
+          <p class="section-lead">
+            Elegí del menú y decinos en qué mesa lo servimos.
+          </p>
+        </header>
+
+        <div class="cart" id="carrito">
+          <p class="empty">El carrito está vacío.</p>
+        </div>
+
+        <form class="card form-card" id="form-pedido" novalidate>
+          <h3>Datos del pedido</h3>
+          <div class="grid-2">
+            <label class="field">
+              <span>Mesa</span>
+              <input type="text" id="pedido-mesa" name="mesa" required minlength="1" maxlength="10" placeholder="Ej: 4">
+            </label>
+            <label class="field">
+              <span>Tu nombre</span>
+              <input type="text" id="pedido-cliente" name="cliente" required minlength="2" maxlength="40" placeholder="Ej: Ana">
+            </label>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Enviar pedido a la barra</button>
+          <p class="form-feedback" id="pedido-feedback"></p>
+        </form>
+      </div>
+
+      <aside class="order-col order-summary-col">
+        <div class="card summary-card">
+          <h3>Tu pedido</h3>
+          <ul class="summary-list" id="resumen-carrito"></ul>
+          <div class="summary-total">
+            <span>Total</span>
+            <strong id="resumen-total">$ 0,00</strong>
+          </div>
+          <p class="muted small">Los precios se calculan en el servidor a partir
+            del catálogo (costo del café + precio base).</p>
+        </div>
+      </aside>
+
+    </div>
+  </section>
+
+  <!-- ===================== RESEÑAS ===================== -->
+  <section id="resenas" class="section section-alt">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="eyebrow">Comunidad</p>
+        <h2>Qué dicen nuestros clientes</h2>
+      </header>
+
+      <div class="reviews-layout">
+        <form class="card form-card" id="form-resena">
+          <h3>Dejá tu reseña</h3>
+          <label class="field">
+            <span>Tu nombre</span>
+            <input type="text" id="resena-autor" name="autor" required minlength="2" maxlength="40" placeholder="¿Cómo te llamás?">
+          </label>
+          <label class="field">
+            <span>Puntuación</span>
+            <select id="resena-calificacion" name="calificacion" required>
+              <option value="5">★★★★★ — Excelente</option>
+              <option value="4">★★★★ — Muy bueno</option>
+              <option value="3">★★★ — Bueno</option>
+              <option value="2">★★ — Regular</option>
+              <option value="1">★ — Malo</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Tu opinión</span>
+            <textarea id="resena-texto" name="texto" rows="4" required minlength="3" maxlength="280" placeholder="¿Qué te gustó?"></textarea>
+          </label>
+          <button type="submit" class="btn btn-primary btn-block">Publicar reseña</button>
+          <p class="form-feedback" id="resena-feedback"></p>
+        </form>
+
+        <div class="reviews-list" id="lista-resenas">
+          <p class="empty">Cargando reseñas…</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div>
+      <strong>Origen</strong>
+      <p>Cafetería de especialidad · Valentina y equipo</p>
+    </div>
+    <div class="footer-meta">
+      <p>Colombia · Etiopía · Brasil</p>
+      <p>Proyecto didáctico — <a href="/admin.html">panel de administración</a></p>
+    </div>
+  </div>
+</footer>
+
+<script src="/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+# =============================================================================
+# Cafetería Origen — orquestación de contenedores
+#
+# Aplicación cliente-servidor distribuida en dos servicios:
+#   - db  : PostgreSQL 16 (datos del catálogo, pedidos, reseñas, usuarios)
+#   - app : Node.js + TypeScript + Express (API REST + sitio web)
+#
+# Ambos servicios viven en una red propia (red_origen). Dentro de esa red se
+# comunican por nombre: el contenedor `app` alcanza a la base como `db:5432`.
+#
+# Levantar:   docker compose up -d --build
+# Ver logs:    docker compose logs -f app
+# Bajar todo: docker compose down
+# Resetear:   docker compose down -v   (borra el volumen de la base)
+# =============================================================================
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: origen_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: origen
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-Postgres_Admin_2026_Segura!}"
+    
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+    volumes:
+      - datos_origen:/var/lib/postgresql/data
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    networks:
+      - red_origen
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d origen"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: origen_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: origen
+      
+      DB_USER: origen_app
+      DB_PASSWORD: "${DB_PASSWORD:-origen_app_2024}
+      SESSION_SECRET: "${SESSION_SECRET:-cambia_este_secreto_largo_y_aleatorio_en_prod_987654}"
+      UPLOADS_DIR: /app/uploads
+      # Puerto publicado en el host, sólo para los mensajes de arranque.
+      APP_PORT: "${APP_PORT:-8090}"
+    ports:
+      # Puerto en el host. Si en tu máquina el 8080 está ocupado, exportá
+      # APP_PORT=8090 antes de `docker compose up` (o ponelo en un .env).
+      - "${APP_PORT:-8090}:3000"
+    volumes:
+      - ./src:/app/src
+      - ./tests:/app/tests
+      - ./scripts:/app/scripts
+      - ./docker-compose.yml:/app/docker-compose.yml:ro
+      - ./Dockerfile:/app/Dockerfile:ro
+      - ./tsconfig.json:/app/tsconfig.json:ro
+      - ./uploads:/app/uploads
+    networks:
+      - red_origen
+
+volumes:
+  datos_origen:
+
+networks:
+  red_origen:
+    name: red_origen
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.89.0.0/24
+          gateway: 10.89.0.1

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel — Cafetería Origen</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9749;</text></svg>">
+</head>
+<body class="admin-body">
+
+<header class="site-header admin-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <span class="brand-mark">O</span>
+      <span class="brand-text">
+        <strong>Origen</strong>
+        <small>panel de administración</small>
+      </span>
+    </a>
+    <div class="admin-user" id="admin-user"></div>
+  </div>
+</header>
+
+<main class="admin-main">
+  <div class="wrap">
+
+    <!-- ============ LOGIN ============ -->
+    <section class="card login-card" id="vista-login">
+      <h1>Iniciar sesión</h1>
+      <p class="muted">Acceso al panel de la cafetería.</p>
+      <form id="form-login" novalidate>
+        <label class="field">
+          <span>Usuario</span>
+          <input type="text" id="login-usuario" name="username" required placeholder="admin">
+        </label>
+        <label class="field">
+          <span>Contraseña</span>
+          <input type="password" id="login-password" name="password" required placeholder="••••••••">
+        </label>
+        <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+        <p class="form-feedback" id="login-feedback"></p>
+      </form>
+      <p class="muted small">
+        <strong>Usuarios de prueba:</strong> admin/admin ·
+        valentina/origen2024 · barista/cafe123 · mozo/mozo123 · cliente/cliente
+      </p>
+    </section>
+
+    <!-- ============ PANEL ============ -->
+    <section id="vista-panel" hidden>
+
+      <div class="panel-head">
+        <h1 id="panel-bienvenida">Panel</h1>
+        <div class="panel-actions">
+          <button class="btn btn-ghost" id="btn-refrescar">Actualizar</button>
+          <button class="btn btn-ghost" id="btn-logout">Cerrar sesión</button>
+        </div>
+      </div>
+
+      <nav class="tabs" id="tabs">
+        <button class="tab is-active" data-vista="resumen">Resumen</button>
+        <button class="tab" data-vista="pedidos">Pedidos</button>
+        <button class="tab" data-vista="productos">Productos</button>
+        <button class="tab" data-vista="reportes">Reportes</button>
+        <button class="tab" data-vista="usuarios">Usuarios</button>
+        <button class="tab" data-vista="herramientas">Herramientas</button>
+      </nav>
+
+      <!-- ---------- RESUMEN ---------- -->
+      <div class="tab-panel is-active" data-panel="resumen">
+        <div class="kpi-grid" id="kpis"></div>
+        <div class="card">
+          <h3>Últimos pedidos</h3>
+          <div class="table-wrap"><table id="tabla-ultimos"></table></div>
+        </div>
+      </div>
+
+      <!-- ---------- PEDIDOS ---------- -->
+      <div class="tab-panel" data-panel="pedidos">
+        <div class="card">
+          <h3>Pedidos de todas las mesas</h3>
+          <div class="table-wrap"><table id="tabla-pedidos"></table></div>
+        </div>
+      </div>
+
+      <!-- ---------- PRODUCTOS ---------- -->
+      <div class="tab-panel" data-panel="productos">
+        <div class="two-col">
+          <div class="card">
+            <h3>Catálogo</h3>
+            <div class="table-wrap"><table id="tabla-productos"></table></div>
+          </div>
+
+          <div class="card">
+            <h3>Alta / edición de producto</h3>
+            <form id="form-producto" novalidate>
+              <input type="hidden" id="producto-id">
+              <label class="field"><span>Nombre</span><input type="text" id="p-nombre" required></label>
+              <div class="grid-2">
+                <label class="field"><span>Tipo</span>
+                  <select id="p-tipo">
+                    <option value="espresso">Espresso</option>
+                    <option value="filtrado">Filtrado</option>
+                    <option value="pasteleria">Pastelería</option>
+                  </select>
+                </label>
+                <label class="field"><span>Origen</span>
+                  <select id="p-variedad">
+                    <option value="">—</option>
+                    <option value="Colombia">Colombia</option>
+                    <option value="Etiopía">Etiopía</option>
+                    <option value="Brasil">Brasil</option>
+                  </select>
+                </label>
+              </div>
+              <div class="grid-3">
+                <label class="field"><span>Tamaño</span>
+                  <select id="p-tamano">
+                    <option value="">—</option>
+                    <option value="Pocillo">Pocillo</option>
+                    <option value="Mediano">Mediano</option>
+                    <option value="Taza grande">Taza grande</option>
+                  </select>
+                </label>
+                <label class="field"><span>Gramos</span><input type="number" id="p-gramos" min="0" step="1"></label>
+                <label class="field"><span>Precio base ($)</span><input type="number" id="p-precio-base" min="0" step="1" value="2500"></label>
+              </div>
+              <label class="field"><span>Precio por gramo ($)</span><input type="number" id="p-precio-gramo" min="0" step="1" value="140"></label>
+              <label class="field"><span>Descripción</span><textarea id="p-descripcion" rows="2"></textarea></label>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Guardar producto</button>
+                <button type="button" class="btn btn-ghost" id="btn-limpiar-producto">Limpiar</button>
+              </div>
+              <p class="form-feedback" id="producto-feedback"></p>
+            </form>
+
+            <h3 class="mt">Subir imagen (logo / foto del menú)</h3>
+            <form id="form-upload" novalidate>
+              <label class="field"><span>Archivo</span><input type="file" id="archivo-subida"></label>
+              <button type="submit" class="btn btn-ghost">Subir archivo</button>
+              <p class="form-feedback" id="upload-feedback"></p>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- REPORTES ---------- -->
+      <div class="tab-panel" data-panel="reportes">
+        <div class="kpi-grid" id="kpis-reportes"></div>
+        <div class="card">
+          <h3>Ventas por origen</h3>
+          <div class="inline-form">
+            <label class="field">
+              <span>Origen</span>
+              <input type="text" id="reporte-variedad" placeholder="Brasil">
+            </label>
+            <button class="btn btn-primary" id="btn-reporte-variedad">Consultar</button>
+          </div>
+          <div class="table-wrap"><table id="tabla-ventas"></table></div>
+          <p class="form-feedback" id="reporte-feedback"></p>
+        </div>
+      </div>
+
+      <!-- ---------- USUARIOS ---------- -->
+      <div class="tab-panel" data-panel="usuarios">
+        <div class="card">
+          <h3>Usuarios del sistema</h3>
+          <div class="table-wrap"><table id="tabla-usuarios"></table></div>
+        </div>
+        <div class="card">
+          <h3>Cambiar mi contraseña</h3>
+          <form id="form-password" novalidate>
+            <label class="field"><span>Nueva contraseña</span><input type="password" id="nueva-password" required></label>
+            <button type="submit" class="btn btn-primary">Actualizar contraseña</button>
+            <p class="form-feedback" id="password-feedback"></p>
+          </form>
+        </div>
+      </div>
+
+      <!-- ---------- HERRAMIENTAS ---------- -->
+      <div class="tab-panel" data-panel="herramientas">
+        <div class="two-col">
+          <div class="card">
+            <h3>Probar conexión con el proveedor</h3>
+            <p class="muted small">Verifica si el servidor de origen responde. Útil
+              cuando el proveedor cambia de servidor.</p>
+            <form id="form-conexion" novalidate>
+              <label class="field"><span>Servidor del proveedor</span>
+                <input type="text" id="conexion-host" placeholder="proveedor.origen.com">
+              </label>
+              <button type="submit" class="btn btn-primary">Probar conexión</button>
+            </form>
+            <pre class="output" id="salida-conexion"></pre>
+          </div>
+
+          <div class="card">
+            <h3>Diagnóstico del servidor</h3>
+            <p class="muted small">Muestra el estado interno del servidor.</p>
+            <button class="btn btn-ghost" id="btn-diagnostico">Ver diagnóstico</button>
+            <pre class="output" id="salida-diagnostico"></pre>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </div>
+</main>
+
+<script src="/js/admin.js"></script>
+</body>
+</html>
