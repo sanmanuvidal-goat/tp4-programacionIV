@@ -1,5 +1,7 @@
 import * as db from '../db';
 import type { Usuario } from '../tipos';
+import bcrypt from 'bcryptjs';
+
 
 export async function buscarPorUsername(username: string): Promise<Usuario | null> {
   const { rows } = await db.query<Usuario>(
@@ -10,11 +12,13 @@ export async function buscarPorUsername(username: string): Promise<Usuario | nul
 }
 
 export async function autenticar(username: string, password: string): Promise<Usuario | null> {
-  const { rows } = await db.query<Usuario>(
-    'SELECT * FROM usuarios WHERE username = $1 AND password = $2',
-    [username, password]
-  );
-  return rows[0] || null;
+  const usuario = await buscarPorUsername(username);
+  if (!usuario) {
+    return null;
+  }
+
+  const passwordValido = await bcrypt.compare(password, usuario.password);
+  return passwordValido ? usuario : null;
 }
 
 export async function listar(): Promise<Usuario[]> {
