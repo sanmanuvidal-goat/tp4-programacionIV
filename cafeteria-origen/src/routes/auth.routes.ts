@@ -5,18 +5,6 @@ import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
 
-/**
- * Inicio de sesión.
- *
- * FALLAS:
- *  - Inyección SQL en la verificación de credenciales (ver usuarios.service).
- *  - Contraseñas almacenadas en texto plano.
- *  - Mensajes de error que distinguen "usuario inexistente" de "contraseña
- *    incorrecta" → enumeración de usuarios.
- *  - Sin rate limiting ni bloqueo: fuerza bruta ilimitada.
- *  - El identificador de sesión no se regenera (fijación de sesión).
- */
-
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -30,6 +18,7 @@ const loginLimiter = rateLimit({
   message: { error: 'Demasiados intentos de inicio de sesión. Intentá más tarde.' },
 });
 
+/** Inicio de sesión. */
 router.post('/login', loginLimiter, async (req, res, next) => {
   try {
     const { username, password } = req.body || {};
@@ -38,7 +27,6 @@ router.post('/login', loginLimiter, async (req, res, next) => {
       return res.status(400).json({ error: 'Falta usuario o contraseña.' });
     }
 
-    // La verificación de credenciales es la consulta concatenada (SQLi).
     const usuario = await usuarios.autenticar(username, password);
 
     if (!usuario) {
@@ -65,6 +53,8 @@ router.post('/login', loginLimiter, async (req, res, next) => {
     next(err);
   }
 });
+
+/** Cierre de sesión: invalida en el servidor y borra la cookie. */
 router.post('/logout', (req, res) => {
   destruirSesion(req);
   res.clearCookie('sid', {
@@ -73,17 +63,6 @@ router.post('/logout', (req, res) => {
     secure: process.env.NODE_ENV === 'production',
     path: '/',
   });
-  res.json({ mensaje: 'Sesión cerrada.' });
-});
-
-/**
- * Cierre de sesión.
- *
- * FALLA: sólo borra la cookie del navegador. La sesión sigue existiendo en el
- * servidor, así que con la cookie robada se puede seguir usando.
- */
-router.post('/logout', (req, res) => {
-  res.clearCookie('sid', { path: '/' });
   res.json({ mensaje: 'Sesión cerrada.' });
 });
 

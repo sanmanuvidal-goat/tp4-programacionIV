@@ -11,23 +11,6 @@ import type { Usuario } from '../tipos';
 
 const router = express.Router();
 
-/**
- * Rutas del panel de administración.
- *
- * -----------------------------------------------------------------------------
- * FALLA — Autorización ausente / escalada de privilegios (OWASP A01:2021)
- * -----------------------------------------------------------------------------
- * Se exige estar autenticado, pero NO se comprueba el rol: `requiereRol` está
- * importado y no se usa. Cualquier usuario autenticado (incluso con rol
- * "cliente") entra al panel y puede:
- *   - crear, editar y BORRAR productos,
- *   - cambiar contraseñas,
- *   - dar de alta usuarios y cambiarles el rol (escalada de privilegios),
- *   - ejecutar comandos en el servidor.
- *
- * Corrección: `router.use(requiereRol('admin'))` sobre las rutas sensibles.
- * -----------------------------------------------------------------------------
- */
 router.use(requiereSesion);
 router.use(requiereRol('admin'));
 
@@ -40,15 +23,9 @@ router.get('/usuarios', async (req, res, next) => {
   }
 });
 
-/**
- * PUT /api/admin/usuarios/:id
- *
- * FALLA — Asignación masiva: se actualiza cualquier campo que llegue en el
- * cuerpo, incluido el `rol`. Un usuario con rol "cliente" puede mandarse
- * `{"rol": "admin"}` y convertirse en administrador.
- */
 const ROLES_VALIDOS = ['admin', 'barista', 'mozo', 'cliente'];
 
+/** PUT /api/admin/usuarios/:id */
 router.put('/usuarios/:id', async (req, res, next) => {
   try {
     if (!req.usuario || req.usuario.rol !== 'admin') {
@@ -83,7 +60,6 @@ router.post('/productos', async (req, res, next) => {
     const producto = await catalogo.crear(req.body || {});
     res.status(201).json(producto);
   } catch (err) {
-    // El nombre del producto es único en la base.
     if ((err as { code?: string }).code === '23505') {
       return res.status(409).json({ error: 'Ya existe un producto con ese nombre.' });
     }
@@ -104,12 +80,7 @@ router.put('/productos/:id', async (req, res, next) => {
   }
 });
 
-/**
- * DELETE /api/admin/productos/:id
- *
- * FALLA — CSRF: la petición que borra un producto no lleva ningún token y se
- * acepta con un simple GET/POST desde cualquier origen.
- */
+/** DELETE /api/admin/productos/:id */
 router.delete('/productos/:id', async (req, res, next) => {
   try {
     const producto = await catalogo.eliminar(req.params.id);
@@ -122,20 +93,13 @@ router.delete('/productos/:id', async (req, res, next) => {
   }
 });
 
-/**
- * POST /api/admin/cambiar-contrasena
- *
- * FALLAS: sin token anti-CSRF, sin límite de intentos, y la contraseña nueva
- * se guarda en texto plano.
- */
+/** POST /api/admin/cambiar-contrasena */
 router.post('/cambiar-contrasena', async (req, res, next) => {
   try {
     const { nueva } = req.body || {};
     if (!nueva) {
       return res.status(400).json({ error: 'Falta la contraseña nueva.' });
     }
-    // FALLA: no se valida la longitud ni la complejidad de la contraseña.
-    // (`req.usuario!`: requiereSesion ya garantizó que hay un usuario.)
     const usuario = await usuarios.cambiarPassword(req.usuario!.id, nueva);
     res.json({ mensaje: 'Contraseña actualizada.', usuario });
   } catch (err) {
@@ -143,21 +107,6 @@ router.post('/cambiar-contrasena', async (req, res, next) => {
   }
 });
 
-/**
- * POST /api/admin/probar-conexion
- *
- * -----------------------------------------------------------------------------
- * FALLA — Inyección de comandos del sistema operativo (OWASP A03:2021)
- * -----------------------------------------------------------------------------
- * La dirección del proveedor se mete dentro de una cadena de shell.
- * Como `exec` launches /bin/sh -c, los operadores del shell (|, ;, &&, $())
- * se interpretan y permiten ejecutar comandos arbitrarios en el contenedor.
- *
- * Corrección: validar el host contra una LISTA BLANCA y ejecutar el proceso
- * con `spawn('ping', ['-c', '3', host], { shell: false })`, sin pasar por el
- * shell.
- * -----------------------------------------------------------------------------
- */
 const HOSTS_PERMITIDOS = new Set([
   'localhost',
   '127.0.0.1',
@@ -166,6 +115,7 @@ const HOSTS_PERMITIDOS = new Set([
 ]);
 const HOST_REGEX = /^[a-zA-Z0-9.-]{1,253}$/;
 
+/** POST /api/admin/probar-conexion */
 router.post('/probar-conexion', (req, res) => {
   const { host } = req.body || {};
 
@@ -208,22 +158,7 @@ router.post('/probar-conexion', (req, res) => {
   });
 });
 
-/**
- * POST /api/admin/subir-archivo
- *
- * -----------------------------------------------------------------------------
- * FALLA — Carga de archivos sin restricciones (OWASP A04:2021)
- * -----------------------------------------------------------------------------
- * No se valida la extensión, el tipo MIME ni el tamaño del archivo, y se
- * guarda con el nombre que manda el cliente (además sin sanitizar "../", lo
- * que permite escribir fuera de la carpeta de subidas). Los archivos subidos
- * se sirven con express.static desde el mismo origen.
- *
- * Corrección: validar extensión contra lista blanca (.png/.jpg/.svg saneado),
- * verificar el tipo MIME real, limitar el tamaño, generar un nombre aleatorio
- * y guardar fuera del árbol web.
- * -----------------------------------------------------------------------------
- */
+/** POST /api/admin/subir-archivo */
 router.post('/subir-archivo', express.json({ limit: '8mb' }), (req, res, next) => {
   try {
     const { nombre, contenidoBase64 } = req.body || {};
@@ -232,11 +167,9 @@ router.post('/subir-archivo', express.json({ limit: '8mb' }), (req, res, next) =
       return res.status(400).json({ error: 'Falta el archivo.' });
     }
 
-    // FALLA: sin validación de extensión, MIME ni tamaño.
     const buffer = Buffer.from(contenidoBase64, 'base64');
     fs.mkdirSync(config.uploadsDir, { recursive: true });
 
-    // FALLA: nombre tomado del cliente sin sanear (path traversal).
     const destino = path.join(config.uploadsDir, nombre);
     fs.writeFileSync(destino, buffer);
 

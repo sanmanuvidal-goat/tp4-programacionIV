@@ -1,27 +1,3 @@
-/**
- * Gestión de sesiones.
- *
- * -----------------------------------------------------------------------------
- * FALLA — Gestión de sesiones insegura (Autenticación insegura)
- * -----------------------------------------------------------------------------
- * 1. El identificador de sesión es un contador incremental (`sesion_1`,
- *    `sesion_2`, ...): es PREDECIBLE y adivinable. Un atacante puede recorrer
- *    los valores y usurpar la sesión de otro usuario (fijación de sesión).
- * 2. La cookie se emite SIN `httpOnly` (JavaScript puede leerla), SIN `secure`
- *    (viaja en texto plano por HTTP) y SIN `sameSite` (el navegador la manda
- *    también en peticiones desde otros sitios → facilita CSRF).
- * 3. Las sesiones NO expiran nunca.
- * 4. Al iniciar sesión no se regenera el identificador.
- * 5. El cierre de sesión sólo borra la cookie del cliente: la sesión sigue
- *    viva en el servidor.
- *
- * Corrección: usar crypto.randomUUID() (o crypto.randomBytes -> hex) para el
- * id, con expiración por inactividad y absoluta, cookie con
- * { httpOnly: true, secure: true, sameSite: 'lax' }, regeneración del id tras
- * el login y borrado de la sesión en el servidor al hacer logout.
- * -----------------------------------------------------------------------------
- */
-
 import type { Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
 
@@ -45,8 +21,13 @@ export function leerCookies(req: Request): Record<string, string> {
   return cookies;
 }
 
-/** Crea una sesión nueva para el usuario y setea la cookie. */
+/** Crea una sesión nueva para el usuario y setea la cookie (regenerando ID si había sesión previa). */
 export function crearSesion(req: Request, res: Response, usuario: UsuarioSesion): string {
+  const cookiesPrevias = leerCookies(req);
+  if (cookiesPrevias.sid) {
+    sesiones.delete(cookiesPrevias.sid);
+  }
+
   const id = randomUUID();
   const ahora = Date.now();
 
@@ -67,7 +48,7 @@ export function crearSesion(req: Request, res: Response, usuario: UsuarioSesion)
   return id;
 }
 
-/** Devuelve la sesión de la petición, si existe. */
+/** Devuelve la sesión de la petición, si existe y no expiró. */
 export function obtenerSesion(req: Request): Sesion | null {
   const cookies = leerCookies(req);
   const id = cookies.sid;
@@ -84,7 +65,7 @@ export function obtenerSesion(req: Request): Sesion | null {
   return sesion;
 }
 
-/** Cierra la sesión en el servidor (debería llamarse en el logout). */
+/** Cierra la sesión en el servidor. */
 export function destruirSesion(req: Request): void {
   const cookies = leerCookies(req);
   const id = cookies.sid;

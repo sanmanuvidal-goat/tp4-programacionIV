@@ -12,13 +12,7 @@ interface UsuarioInicial {
 
 /**
  * Carga los datos iniciales (usuarios y catálogo) si la base está vacía.
- *
- * FALLA — Almacenamiento inseguro de credenciales:
- * las contraseñas de los usuarios se guardan en TEXTO PLANO.
- * La corrección es hashear con bcrypt + salt por usuario
- * (bcryptjs ya está instalado como dependencia del proyecto).
  */
-
 export const USUARIOS_INICIALES: UsuarioInicial[] = [
   {
     username: 'admin',
@@ -60,7 +54,7 @@ export async function inicializarBase(): Promise<void> {
       `INSERT INTO usuarios (username, password, rol, nombre)
        VALUES ($1, $2, $3, $4)
        ON CONFLICT (username) DO NOTHING`,
-      [usuario.username, passwordHash , usuario.rol, usuario.nombre]
+      [usuario.username, passwordHash, usuario.rol, usuario.nombre]
     );
   }
 
