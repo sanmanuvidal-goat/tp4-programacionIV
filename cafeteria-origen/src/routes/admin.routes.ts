@@ -51,7 +51,7 @@ const ROLES_VALIDOS = ['admin', 'barista', 'mozo', 'cliente'];
 
 router.put('/usuarios/:id', async (req, res, next) => {
   try {
-    if (req.usuario?.rol !== 'admin') {
+    if (!req.usuario || req.usuario.rol !== 'admin') {
       return res.status(403).json({ error: 'No tenés permisos para esta operación.' });
     }
 
