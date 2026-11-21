@@ -1,7 +1,7 @@
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
-import { exec } from 'child_process';
+import { spawn } from 'child_process';
 
 import config from '../config';
 import * as catalogo from '../services/catalogo.service';
@@ -158,17 +158,52 @@ router.post('/cambiar-contrasena', async (req, res, next) => {
  * shell.
  * -----------------------------------------------------------------------------
  */
+const HOSTS_PERMITIDOS = new Set([
+  'localhost',
+  '127.0.0.1',
+  'db',
+  'api.cafeteriaorigen.local',
+]);
+const HOST_REGEX = /^[a-zA-Z0-9.-]{1,253}$/;
+
 router.post('/probar-conexion', (req, res) => {
   const { host } = req.body || {};
 
-  // FALLA: entrada de usuario concatenada en un comando de shell.
-  const comando = `ping -c 3 ${host}`;
+  if (
+    typeof host !== 'string' ||
+    !HOST_REGEX.test(host) ||
+    host.startsWith('-') ||
+    !HOSTS_PERMITIDOS.has(host)
+  ) {
+    return res.status(400).json({ error: 'Host no permitido o inválido.' });
+  }
 
-  exec(comando, (error, stdout, stderr) => {
-    res.json({
-      comando,
+  const child = spawn('ping', ['-c', '3', host], { shell: false });
+
+  let stdout = '';
+  let stderr = '';
+
+  child.stdout.on('data', (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  child.stderr.on('data', (chunk) => {
+    stderr += chunk.toString();
+  });
+
+  child.on('error', (error) => {
+    res.status(500).json({
+      comando: `ping -c 3 ${host}`,
       salida: stdout,
-      error: stderr || (error ? error.message : null),
+      error: error.message,
+    });
+  });
+
+  child.on('close', (code) => {
+    res.json({
+      comando: `ping -c 3 ${host}`,
+      salida: stdout,
+      error: code !== 0 ? stderr || `Código de salida ${code}` : null,
     });
   });
 });
