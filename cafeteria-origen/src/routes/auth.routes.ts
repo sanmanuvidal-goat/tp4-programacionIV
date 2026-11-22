@@ -30,7 +30,16 @@ router.post('/login', loginLimiter, async (req, res, next) => {
     const usuario = await usuarios.autenticar(username, password);
 
     if (!usuario) {
-      return res.status(401).json({ error: 'Usuario o contraseña incorrectos.' });
+      // FALLA — Enumeración de usuarios: el mensaje distingue entre
+      // "no existe" y "contraseña incorrecta", lo que permite a un atacante
+      // averiguar qué cuentas hay en el sistema.
+      const existe = await usuarios.buscarPorUsername(username);
+      if (existe) {
+        return res.status(401).json({ error: 'La contraseña es incorrecta.' });
+      }
+      return res
+        .status(401)
+        .json({ error: `El usuario "${username}" no existe en el sistema.` });
     }
 
     crearSesion(req, res, {

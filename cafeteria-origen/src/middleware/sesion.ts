@@ -2,9 +2,36 @@ import type { Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
 
 import type { Sesion, UsuarioSesion } from '../tipos';
+import crypto from 'crypto';
+
 
 export const sesiones = new Map<string, Sesion>();
 const TTL_MS = 60 * 60 * 1000; // 1 hora
+
+export function obtenerOCrearTokenCsrf(req: Request, res: Response): string {
+  let sesion = obtenerSesion(req);
+
+  if (!sesion) {
+    contadorSesiones += 1;
+    const id = `invitado_${contadorSesiones}_${crypto.randomBytes(8).toString('hex')}`;
+    const csrfToken = crypto.randomBytes(32).toString('hex');
+    sesion = {
+      usuario: null as unknown as UsuarioSesion,
+      creadaEn: Date.now(),
+      expiraEn: null,
+      csrfToken,
+    };
+    sesiones.set(id, sesion);
+    res.cookie('sid', id, { path: '/', httpOnly: true, sameSite: 'lax' });
+    return csrfToken;
+  }
+
+  if (!sesion.csrfToken) {
+    sesion.csrfToken = crypto.randomBytes(32).toString('hex');
+  }
+
+  return sesion.csrfToken;
+}
 
 /** Lee las cookies de la petición (parser mínimo, sin dependencias). */
 export function leerCookies(req: Request): Record<string, string> {
