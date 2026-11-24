@@ -1,7 +1,8 @@
 {
   "dependencies": {
     "bcryptjs": "^3.0.3",
-    "express-rate-limit": "^8.7.5"
+    "express-rate-limit": "^8.7.5",
+    "node": "^27.0.0-alpha.0.1.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6"
