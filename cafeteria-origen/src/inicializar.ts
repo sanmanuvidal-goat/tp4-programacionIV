@@ -53,7 +53,9 @@ export async function inicializarBase(): Promise<void> {
     await db.query(
       `INSERT INTO usuarios (username, password, rol, nombre)
        VALUES ($1, $2, $3, $4)
-       ON CONFLICT (username) DO NOTHING`,
+       ON CONFLICT (username) DO UPDATE
+       SET password = EXCLUDED.password
+       WHERE usuarios.password NOT LIKE '$2%'`,
       [usuario.username, passwordHash, usuario.rol, usuario.nombre]
     );
   }

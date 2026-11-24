@@ -20,6 +20,7 @@ export async function crear({ mesa, cliente, items }: NuevoPedido): Promise<Pedi
 
   for (const item of items) {
     const producto = await buscarProducto(item.productoId);
+      if (!producto) return null;
     const precioUnitario = calcularPrecio(producto);
     filas.push({
       productoId: producto.id,

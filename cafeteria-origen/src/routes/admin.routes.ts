@@ -8,6 +8,7 @@ import * as catalogo from '../services/catalogo.service';
 import * as usuarios from '../services/usuarios.service';
 import { requiereSesion, requiereRol } from '../middleware/auth';
 import type { Usuario } from '../tipos';
+import crypto from 'crypto';
 
 const router = express.Router();
 
@@ -158,24 +159,62 @@ router.post('/probar-conexion', (req, res) => {
   });
 });
 
+const EXTENSIONES_PERMITIDAS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.pdf']);
+const MAX_BYTES_ARCHIVO = 2 * 1024 * 1024; // 2 MB
+
+function detectarTipoReal(buffer: Buffer): string | null {
+  if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
+    return '.png';
+  }
+  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+    return '.jpg';
+  }
+  if (buffer.length >= 12 && buffer.subarray(0, 4).toString('ascii') === 'RIFF' && buffer.subarray(8, 12).toString('ascii') === 'WEBP') {
+    return '.webp';
+  }
+  if (buffer.length >= 5 && buffer.subarray(0, 5).toString('ascii') === '%PDF-') {
+    return '.pdf';
+  }
+  return null;
+}
+
 /** POST /api/admin/subir-archivo */
-router.post('/subir-archivo', express.json({ limit: '8mb' }), (req, res, next) => {
+router.post('/subir-archivo', express.json({ limit: '4mb' }), (req, res, next) => {
   try {
     const { nombre, contenidoBase64 } = req.body || {};
 
-    if (!nombre || !contenidoBase64) {
+    if (typeof nombre !== 'string' || typeof contenidoBase64 !== 'string' || !nombre || !contenidoBase64) {
       return res.status(400).json({ error: 'Falta el archivo.' });
     }
 
-    const buffer = Buffer.from(contenidoBase64, 'base64');
-    fs.mkdirSync(config.uploadsDir, { recursive: true });
+    const nombreLimpio = path.basename(nombre);
+    if (nombreLimpio !== nombre || nombre.includes('..')) {
+      return res.status(400).json({ error: 'Nombre de archivo inválido.' });
+    }
 
-    const destino = path.join(config.uploadsDir, nombre);
+    const ext = path.extname(nombreLimpio).toLowerCase();
+    if (!EXTENSIONES_PERMITIDAS.has(ext)) {
+      return res.status(400).json({ error: 'Extensión de archivo no permitida.' });
+    }
+
+    const buffer = Buffer.from(contenidoBase64, 'base64');
+    if (buffer.length === 0 || buffer.length > MAX_BYTES_ARCHIVO) {
+      return res.status(400).json({ error: 'El archivo excede el tamaño máximo permitido (2 MB).' });
+    }
+
+    const tipoReal = detectarTipoReal(buffer);
+    if (!tipoReal || (tipoReal === '.jpg' ? ext !== '.jpg' && ext !== '.jpeg' : tipoReal !== ext)) {
+      return res.status(400).json({ error: 'El contenido del archivo no coincide con su extensión.' });
+    }
+
+    fs.mkdirSync(config.uploadsDir, { recursive: true });
+    const nombreFinal = `${crypto.randomUUID()}${ext}`;
+    const destino = path.join(config.uploadsDir, nombreFinal);
     fs.writeFileSync(destino, buffer);
 
     res.json({
       mensaje: 'Archivo subido.',
-      url: `/uploads/${nombre}`,
+      url: `/uploads/${nombreFinal}`,
       bytes: buffer.length,
     });
   } catch (err) {

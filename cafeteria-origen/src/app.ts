@@ -1,5 +1,7 @@
 import path from 'path';
 import express from 'express';
+import helmet from 'helmet';
+import crypto from 'crypto';
 
 import config from './config';
 import { rutaNoEncontrada, manejadorErrores } from './middleware/errores';
@@ -10,9 +12,8 @@ import reportesRoutes from './routes/reportes.routes';
 import comentariosRoutes from './routes/comentarios.routes';
 import adminRoutes from './routes/admin.routes';
 import debugRoutes from './routes/debug.routes';
-import helmet from 'helmet';
-import crypto from 'crypto';
 import { obtenerSesion, obtenerOCrearTokenCsrf } from './middleware/sesion';
+
 const METODOS_MUTANTES = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const app = express();
 
@@ -31,6 +32,26 @@ function origenPermitido(req: express.Request): boolean {
     return false;
   }
 }
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        imgSrc: ["'self'", 'data:'],
+        frameAncestors: ["'self'"],
+      },
+    },
+    frameguard: { action: 'sameorigin' },
+    referrerPolicy: { policy: 'no-referrer' },
+  })
+);
+
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true }));
+
 app.get('/api/csrf-token', (req, res) => {
   const csrfToken = obtenerOCrearTokenCsrf(req, res);
   res.json({ csrfToken });
@@ -53,9 +74,9 @@ app.use('/api', (req, res, next) => {
   const sesion = obtenerSesion(req);
   const tokenEsperado = sesion?.csrfToken;
   const headerToken = req.get('x-csrf-token');
-  const bodyToken =
-    typeof req.body?._csrf === 'string' ? req.body._csrf : undefined;
-  const tokenRecibido = headerToken || bodyToken;
+  const bodyToken = typeof req.body?._csrf === 'string' ? req.body._csrf : undefined;
+  const queryToken = typeof req.query?._csrf === 'string' ? req.query._csrf : undefined;
+  const tokenRecibido = headerToken || bodyToken || queryToken;
 
   if (!tokenEsperado || !tokenRecibido) {
     res.status(403).json({ error: 'Token CSRF faltante o inválido' });
@@ -76,43 +97,9 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-
-/**
- * FALLA — Ajustes de configuración (OWASP A05:2021)
- *
- * Faltan:
- *  - helmet (cabeceras de seguridad: CSP, X-Content-Type-Options, HSTS...)
- *  - límite de tamaño del cuerpo más estricto por ruta
- *  - rate limiting global
- *  - política de CORS restringida al propio origen
- *  - helmet CSP además sirve como capa extra frente al XSS
- */
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-        objectSrc: ["'none'"],
-        imgSrc: ["'self'", 'data:'],
-        frameAncestors: ["'self'"],
-      },
-    },
-    frameguard: { action: 'sameorigin' },
-    referrerPolicy: { policy: 'no-referrer' },
-  })
-);
-
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true }));
-
-// Archivos subidos por el panel de administración.
 app.use('/uploads', express.static(config.uploadsDir));
-
-// Sitio web estático
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- API --------------------------------------------------------------------
 app.get('/api/salud', (req, res) => {
   res.json({ ok: true, servicio: 'cafeteria-origen', hora: new Date().toISOString() });
 });
@@ -126,7 +113,6 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/_diagnostico', debugRoutes);
 
 app.use('/api', rutaNoEncontrada);
-
 app.use(manejadorErrores);
 
 export default app;

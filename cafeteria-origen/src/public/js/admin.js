@@ -29,6 +29,21 @@ function escaparHtml(texto) {
     .replace(/'/g, '&#39;');
 }
 
+var csrfTokenCache = null;
+
+function obtenerCsrfToken(forzar) {
+  if (csrfTokenCache && !forzar) {
+    return Promise.resolve(csrfTokenCache);
+  }
+  return fetch(API + '/csrf-token', { credentials: 'same-origin' })
+    .then(function (res) { return res.json(); })
+    .then(function (data) {
+      csrfTokenCache = data.csrfToken || null;
+      return csrfTokenCache;
+    })
+    .catch(function () { return null; });
+}
+
 function api(url, opciones, reintento) {
   var opts = opciones || {};
   var metodo = (opts.method || 'GET').toUpperCase();
@@ -127,7 +142,7 @@ function api(url, opciones, reintento) {
   }
 
   function mostrarPanel() {
-    ('#vista-login').hidden = true;
+    $('#vista-login').hidden = true;
     $('#vista-panel').hidden = false;
 
     var adminUser = $('#admin-user');
@@ -714,4 +729,4 @@ function cargarUsuarios() {
     init();
   }
 
-})
+})();

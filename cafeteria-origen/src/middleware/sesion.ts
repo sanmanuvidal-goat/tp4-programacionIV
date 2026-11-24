@@ -1,9 +1,6 @@
 import type { Request, Response } from 'express';
-import { randomUUID } from 'node:crypto';
-
+import crypto, { randomUUID } from 'node:crypto';
 import type { Sesion, UsuarioSesion } from '../tipos';
-import crypto from 'crypto';
-
 
 export const sesiones = new Map<string, Sesion>();
 const TTL_MS = 60 * 60 * 1000; // 1 hora
@@ -12,17 +9,23 @@ export function obtenerOCrearTokenCsrf(req: Request, res: Response): string {
   let sesion = obtenerSesion(req);
 
   if (!sesion) {
-    contadorSesiones += 1;
-    const id = `invitado_${contadorSesiones}_${crypto.randomBytes(8).toString('hex')}`;
+    const id = `invitado_${randomUUID()}`;
     const csrfToken = crypto.randomBytes(32).toString('hex');
+    const ahora = Date.now();
     sesion = {
       usuario: null as unknown as UsuarioSesion,
-      creadaEn: Date.now(),
-      expiraEn: null,
+      creadaEn: ahora,
+      expiraEn: ahora + TTL_MS,
       csrfToken,
     };
     sesiones.set(id, sesion);
-    res.cookie('sid', id, { path: '/', httpOnly: true, sameSite: 'lax' });
+    res.cookie('sid', id, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: TTL_MS,
+    });
     return csrfToken;
   }
 
@@ -33,7 +36,6 @@ export function obtenerOCrearTokenCsrf(req: Request, res: Response): string {
   return sesion.csrfToken;
 }
 
-/** Lee las cookies de la petición (parser mínimo, sin dependencias). */
 export function leerCookies(req: Request): Record<string, string> {
   const cookies: Record<string, string> = {};
   const header = req.headers.cookie;
@@ -48,7 +50,6 @@ export function leerCookies(req: Request): Record<string, string> {
   return cookies;
 }
 
-/** Crea una sesión nueva para el usuario y setea la cookie (regenerando ID si había sesión previa). */
 export function crearSesion(req: Request, res: Response, usuario: UsuarioSesion): string {
   const cookiesPrevias = leerCookies(req);
   if (cookiesPrevias.sid) {
@@ -62,6 +63,7 @@ export function crearSesion(req: Request, res: Response, usuario: UsuarioSesion)
     usuario,
     creadaEn: ahora,
     expiraEn: ahora + TTL_MS,
+    csrfToken: crypto.randomBytes(32).toString('hex'),
   });
 
   res.cookie('sid', id, {
@@ -75,7 +77,6 @@ export function crearSesion(req: Request, res: Response, usuario: UsuarioSesion)
   return id;
 }
 
-/** Devuelve la sesión de la petición, si existe y no expiró. */
 export function obtenerSesion(req: Request): Sesion | null {
   const cookies = leerCookies(req);
   const id = cookies.sid;
@@ -92,7 +93,6 @@ export function obtenerSesion(req: Request): Sesion | null {
   return sesion;
 }
 
-/** Cierra la sesión en el servidor. */
 export function destruirSesion(req: Request): void {
   const cookies = leerCookies(req);
   const id = cookies.sid;

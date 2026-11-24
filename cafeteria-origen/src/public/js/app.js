@@ -29,6 +29,19 @@
     return String(valor == null ? '' : valor);
   }
 
+function obtenerCsrfToken(forzar) {
+  if (csrfTokenCache && !forzar) {
+    return Promise.resolve(csrfTokenCache);
+  }
+  return fetch(API + '/csrf-token', { credentials: 'same-origin' })
+    .then(function (res) { return res.json(); })
+    .then(function (data) {
+      csrfTokenCache = data.csrfToken || null;
+      return csrfTokenCache;
+    })
+    .catch(function () { return null; });
+}
+
 function api(url, opciones, reintento) {
   var opts = opciones || {};
   var metodo = (opts.method || 'GET').toUpperCase();
