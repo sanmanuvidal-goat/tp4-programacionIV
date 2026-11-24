@@ -51,11 +51,14 @@ router.get('/variedades', async (req, res, next) => {
  */
 router.get('/:id', async (req, res, next) => {
   try {
-    const producto = await catalogo.obtener(req.params.id);
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: 'ID de producto inválido.' });
+    }
+
+    const producto = await catalogo.obtener(id);
     if (!producto) {
-      return res
-        .status(404)
-        .json({ error: `No existe el producto "${req.params.id}".` });
+      return res.status(404).json({ error: 'Producto no encontrado.' });
     }
     res.json(producto);
   } catch (err) {

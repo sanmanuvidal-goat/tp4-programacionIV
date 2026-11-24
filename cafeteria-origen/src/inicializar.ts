@@ -1,6 +1,7 @@
 import * as db from './db';
 import { CATALOGO } from './catalogo';
 import type { Rol } from './tipos';
+import bcrypt from 'bcryptjs';
 
 interface UsuarioInicial {
   username: string;
@@ -11,13 +12,7 @@ interface UsuarioInicial {
 
 /**
  * Carga los datos iniciales (usuarios y catálogo) si la base está vacía.
- *
- * FALLA — Almacenamiento inseguro de credenciales:
- * las contraseñas de los usuarios se guardan en TEXTO PLANO.
- * La corrección es hashear con bcrypt + salt por usuario
- * (bcryptjs ya está instalado como dependencia del proyecto).
  */
-
 export const USUARIOS_INICIALES: UsuarioInicial[] = [
   {
     username: 'admin',
@@ -54,12 +49,14 @@ export const USUARIOS_INICIALES: UsuarioInicial[] = [
 export async function inicializarBase(): Promise<void> {
   // --- Usuarios -------------------------------------------------------------
   for (const usuario of USUARIOS_INICIALES) {
-    // FALLA: la contraseña se guarda tal cual, sin hash ni salt.
+    const passwordHash = await bcrypt.hash(usuario.password, 10);
     await db.query(
       `INSERT INTO usuarios (username, password, rol, nombre)
        VALUES ($1, $2, $3, $4)
-       ON CONFLICT (username) DO NOTHING`,
-      [usuario.username, usuario.password, usuario.rol, usuario.nombre]
+       ON CONFLICT (username) DO UPDATE
+       SET password = EXCLUDED.password
+       WHERE usuarios.password NOT LIKE '$2%'`,
+      [usuario.username, passwordHash, usuario.rol, usuario.nombre]
     );
   }
 

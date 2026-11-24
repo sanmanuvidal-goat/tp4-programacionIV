@@ -15,7 +15,7 @@ import type { Rol } from '../tipos';
 /** Exige que haya una sesión válida. */
 export function requiereSesion(req: Request, res: Response, next: NextFunction) {
   const sesion = obtenerSesion(req);
-  if (!sesion) {
+  if (!sesion || !sesion.usuario) {
     return res.status(401).json({ error: 'Necesitás iniciar sesión.' });
   }
   req.usuario = sesion.usuario;

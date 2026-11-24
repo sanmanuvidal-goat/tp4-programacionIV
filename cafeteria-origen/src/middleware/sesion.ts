@@ -1,35 +1,41 @@
-/**
- * Gestión de sesiones.
- *
- * -----------------------------------------------------------------------------
- * FALLA — Gestión de sesiones insegura (Autenticación insegura)
- * -----------------------------------------------------------------------------
- * 1. El identificador de sesión es un contador incremental (`sesion_1`,
- *    `sesion_2`, ...): es PREDECIBLE y adivinable. Un atacante puede recorrer
- *    los valores y usurpar la sesión de otro usuario (fijación de sesión).
- * 2. La cookie se emite SIN `httpOnly` (JavaScript puede leerla), SIN `secure`
- *    (viaja en texto plano por HTTP) y SIN `sameSite` (el navegador la manda
- *    también en peticiones desde otros sitios → facilita CSRF).
- * 3. Las sesiones NO expiran nunca.
- * 4. Al iniciar sesión no se regenera el identificador.
- * 5. El cierre de sesión sólo borra la cookie del cliente: la sesión sigue
- *    viva en el servidor.
- *
- * Corrección: usar crypto.randomUUID() (o crypto.randomBytes -> hex) para el
- * id, con expiración por inactividad y absoluta, cookie con
- * { httpOnly: true, secure: true, sameSite: 'lax' }, regeneración del id tras
- * el login y borrado de la sesión en el servidor al hacer logout.
- * -----------------------------------------------------------------------------
- */
-
 import type { Request, Response } from 'express';
-
+import crypto, { randomUUID } from 'node:crypto';
 import type { Sesion, UsuarioSesion } from '../tipos';
 
 export const sesiones = new Map<string, Sesion>();
-let contadorSesiones = 0;
+const TTL_MS = 60 * 60 * 1000; // 1 hora
 
-/** Lee las cookies de la petición (parser mínimo, sin dependencias). */
+export function obtenerOCrearTokenCsrf(req: Request, res: Response): string {
+  let sesion = obtenerSesion(req);
+
+  if (!sesion) {
+    const id = `invitado_${randomUUID()}`;
+    const csrfToken = crypto.randomBytes(32).toString('hex');
+    const ahora = Date.now();
+    sesion = {
+      usuario: null as unknown as UsuarioSesion,
+      creadaEn: ahora,
+      expiraEn: ahora + TTL_MS,
+      csrfToken,
+    };
+    sesiones.set(id, sesion);
+    res.cookie('sid', id, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: TTL_MS,
+    });
+    return csrfToken;
+  }
+
+  if (!sesion.csrfToken) {
+    sesion.csrfToken = crypto.randomBytes(32).toString('hex');
+  }
+
+  return sesion.csrfToken;
+}
+
 export function leerCookies(req: Request): Record<string, string> {
   const cookies: Record<string, string> = {};
   const header = req.headers.cookie;
@@ -44,35 +50,49 @@ export function leerCookies(req: Request): Record<string, string> {
   return cookies;
 }
 
-/** Crea una sesión nueva para el usuario y setea la cookie. */
 export function crearSesion(req: Request, res: Response, usuario: UsuarioSesion): string {
-  contadorSesiones += 1;
+  const cookiesPrevias = leerCookies(req);
+  if (cookiesPrevias.sid) {
+    sesiones.delete(cookiesPrevias.sid);
+  }
 
-  // FALLA: identificador predecible.
-  const id = `sesion_${contadorSesiones}`;
+  const id = randomUUID();
+  const ahora = Date.now();
 
-  // FALLA: la sesión nunca expira.
   sesiones.set(id, {
     usuario,
-    creadaEn: Date.now(),
-    expiraEn: null,
+    creadaEn: ahora,
+    expiraEn: ahora + TTL_MS,
+    csrfToken: crypto.randomBytes(32).toString('hex'),
   });
 
-  // FALLA: cookie sin httpOnly / secure / sameSite.
-  res.cookie('sid', id, { path: '/' });
+  res.cookie('sid', id, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: TTL_MS,
+  });
 
   return id;
 }
 
-/** Devuelve la sesión de la petición, si existe. */
 export function obtenerSesion(req: Request): Sesion | null {
   const cookies = leerCookies(req);
   const id = cookies.sid;
   if (!id) return null;
-  return sesiones.get(id) || null;
+
+  const sesion = sesiones.get(id);
+  if (!sesion) return null;
+
+  if (sesion.expiraEn !== null && Date.now() > sesion.expiraEn) {
+    sesiones.delete(id);
+    return null;
+  }
+
+  return sesion;
 }
 
-/** Cierra la sesión en el servidor (debería llamarse en el logout). */
 export function destruirSesion(req: Request): void {
   const cookies = leerCookies(req);
   const id = cookies.sid;

@@ -56,11 +56,6 @@ export interface Usuario {
 /** Lo que se guarda del usuario dentro de la sesión. */
 export type UsuarioSesion = Pick<Usuario, 'id' | 'username' | 'rol' | 'nombre'>;
 
-export interface Sesion {
-  usuario: UsuarioSesion;
-  creadaEn: number;
-  expiraEn: number | null;
-}
 
 /** Fila de la tabla `pedidos`. */
 export interface Pedido {
@@ -81,6 +76,13 @@ export interface PedidoItem {
   precio_unitario: Numerico;
   producto_nombre: string;
 }
+export interface Sesion {
+  usuario: UsuarioSesion;
+  creadaEn: number;
+  expiraEn: number | null;
+  csrfToken?: string;
+}
+
 
 export interface PedidoConItems extends Pedido {
   items: PedidoItem[];
